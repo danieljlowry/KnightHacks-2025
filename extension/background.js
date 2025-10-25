@@ -27,7 +27,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
                     type: 'basic',
                     iconUrl: 'images/warning_icon.png',
                     title: 'Study Focus Warning',
-                    message: 'This website is not in your allowed list. Stay focused on your studies!'
+                    message: 'HEY! This website is NOT in your allowed list. Stay focused on the task at hand!'
                 });
             }
         }
