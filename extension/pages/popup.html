@@ -12,12 +12,13 @@ Main popup interface for the Study Companion App Chrome extension.
 </head>
 <body>
 
-    <h1>Welcome to DDOS!</h1>
+    <h1>Welcome to DDOS!</h1> 
+    <a href ="settings.html"><img src= "../images/settings_icon.png" alt = "Settings" class = "settings"/></a>
     <h3>No, not <em>that</em> kind of the DDOS...</h3>
     <p>Please enter the websites you're allowed to visit below:<p>
 
     <!--
-    WEBSITE INPUT FORM --------------------------------------------------------------------------------------------------    
+    INPUT TEXT FIELDS  --------------------------------------------------------------------------------------------------    
     -->
     <form id="allowed-form">
         <h3><label for="URL1">Website 1:</label></h3>
@@ -30,7 +31,7 @@ Main popup interface for the Study Companion App Chrome extension.
         <input type="url" id="URL3" name="URL3" placeholder="https://example.com">
 
     <!--
-    BUTTONS  ---------------------------------------------------------------------------------    
+    BUTTONS  ------------------------------------------------------------------------------------------------------------    
     -->
         <div class="button-container">
             <button id="submitBtn" type="submit" class="btn">Save Websites</button>

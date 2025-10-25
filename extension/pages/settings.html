@@ -1,0 +1,53 @@
+<!--
+Settings page for the Study Companion App Chrome extension.
+Allows user to  customize study and break time durations.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <link rel="stylesheet" href="../styling/settings.css">
+</head>
+<body>
+    
+<h1>Settings</h1>
+<a href ="popup.html"><img src= "../images/home_icon.png" alt = "Home" class = "home"/></a>
+
+<!--
+INPUT TEXTE FIELDS -------------------------------------------------------------------------------------------------------------
+-->
+
+<form id="settings-form">
+    <div class="field">
+        <label for="studyTime">Study time (minutes):</label>
+        <input id="studyTime" name="studyTime" type="number" min="1" step="1" required>
+    </div>
+
+    <div class="field">
+        <label for="breakTime">Break time (minutes):</label>
+        <input id="breakTime" name="breakTime" type="number" min="0" step="1" required>
+    </div>
+
+<!-- 
+BUTTONS -------------------------------------------------------------------------------------------------------------    
+-->
+    <div class="controls">
+        <button id="saveSettings" type="submit" class="btn">Save</button>
+        <button id="resetSettings" type="button" class="btn secondary">Reset</button>
+    </div>
+
+    <div id="msg" role="status" aria-live="polite"></div>
+</form>
+
+<!-- 
+ADD FUNCTIONALITY SCRIPT ---------------------------------------------------------------------------------------------
+-->
+
+<script src="settings.js"></script>
+
+
+</body>
+</html>

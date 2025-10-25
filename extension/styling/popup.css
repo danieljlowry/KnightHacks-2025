@@ -1,10 +1,12 @@
 /* 
 Styles for popup.html
 */
+
 body { 
     width: 320px; 
     padding: 12px; 
     font-family: Arial, sans-serif; 
+    position: relative; /* needed for absolutely positioned header elements */
 }
 
 
@@ -62,4 +64,14 @@ CLEAR SAVED WEBSITES -----------------------------------------------------------
     height: 18px; 
 }
 
-   
+/* 
+SETTINGS -------------------------------------------------------------------------------------------------------------
+*/
+.settings {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 35px;
+    height: 35px;
+    cursor: pointer;
+}

@@ -1,6 +1,5 @@
 /*
-Functionality for popup.html: saves allowed websites, clear saved websites, ...
-... autosaves text fields
+Functionality for popup.html: saves allowed websites, clear saved websites, autosaves text fields
 */
 
 
