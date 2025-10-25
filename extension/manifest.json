@@ -3,7 +3,20 @@
   "name": "Study Companion App",
   "version": "1.0",
   "description": "Helps you stay focused by warning you of online distractions while studying.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "notifications"
+  ],
   "action": {
     "default_popup": "pages/popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "48": "images/study_icon48.png",
+    "128": "images/study_icon128.png",
+    "warning": "images/warning_icon.png"
   }
 }
