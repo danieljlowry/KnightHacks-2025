@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const filtered = values.filter(v => v !== '');
         chrome.storage.local.set({ allowedWebsites: filtered }, function() {
 
-            // Indiciate to user that websites have been saved
+            // Indiciate to user that websites have been saved, in extension UI
             status.textContent = 'Saved!';
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => { status.textContent = ''; }, 1100);
@@ -76,4 +76,18 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         saveAllowed();
     });
+
+
+    // CLEAR STORED WEBSITES (single-click behaviour) -------------------------------------------------------
+    const clearBtn = document.getElementById('clearSavedBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            chrome.storage.local.remove(['allowedWebsites'], function() {
+                inputs.forEach(i => { if (i) i.value = ''; });
+                status.textContent = 'Saved websites cleared.';
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => { status.textContent = ''; }, 1600);
+            });
+        });
+    }
 });

@@ -54,11 +54,11 @@ async function checkUrlAndNotify(tab) {
             chrome.notifications.create({
                 type: 'basic',
                 iconUrl: 'images/warning_icon.png',
-                title: 'Study Focus Warning',
+                title: 'WARNING: Unauthorized Website Accessed!',
                 message: 'HEY! This website is NOT on your allowed list. Stay focused!'
             });
         }
-        
+
     // Catchs any errors to avoid breaking the background script
     } catch (e) {
         console.error('checkUrlAndNotify error', e);

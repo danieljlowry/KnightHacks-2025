@@ -25,6 +25,7 @@ button {
     font-size: 14px;
     background-color: red; 
     color:white;
+    cursor: pointer;
 }
         
 #status { 
@@ -33,3 +34,21 @@ button {
     color: green; 
     height: 18px; 
 }
+
+.clearSave {
+    margin-top:12px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+.clearSavedBtn {
+    background-color: blue;
+    padding: 8px;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+}
+
+
+
+   
