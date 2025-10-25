@@ -20,12 +20,20 @@ input[type="url"] {
     font-size: 13px;
 }
 
-button { 
-    padding: 8px; 
+/* Save websites button */
+.btn {
+    padding: 8px 10px;
     font-size: 14px;
-    background-color: red; 
-    color:white;
+    background-color: #c0392b; 
+    color: white;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
     cursor: pointer;
+}
+
+/* Clear webstites button */
+.btn.blue {
+    background-color: #1976d2; 
 }
         
 #status { 
@@ -41,8 +49,10 @@ button {
     flex-direction:column;
     gap:8px;
 }
+
+
 .clearSavedBtn {
-    background-color: blue;
+    background-color: #1976d2;
     padding: 8px;
     border-radius: 4px;
     color: white;
