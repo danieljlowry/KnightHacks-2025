@@ -1,5 +1,6 @@
 /*
-Functionality for popup.html: saves allowed websites, clear saved websites, autosaves text fields
+Functionality for popup.html: saves allowed websites, clear saved websites, ...
+... autosaves text fields
 */
 
 
@@ -89,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearBtn.addEventListener('click', function() {
             chrome.storage.local.remove(['allowedWebsites'], function() {
                 inputs.forEach(i => { if (i) i.value = ''; });
-                status.textContent = 'Saved websites cleared.';
+                status.textContent = 'Cleared!';
                 clearTimeout(saveTimeout);
                 saveTimeout = setTimeout(() => { status.textContent = ''; }, 1600);
             });

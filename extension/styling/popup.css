@@ -1,7 +1,6 @@
 /* 
 Styles for popup.html
 */
-
 body { 
     width: 320px; 
     padding: 12px; 
@@ -49,20 +48,11 @@ CLEAR SAVED WEBSITES -----------------------------------------------------------
     background-color: #1976d2; 
 }
 
-.clearSave {
-    margin-top:12px;
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-}
-
-
-.clearSavedBtn {
-    background-color: #1976d2;
-    padding: 8px;
-    border-radius: 4px;
-    color: white;
-    cursor: pointer;
+.button-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
 }
 
 #status { 

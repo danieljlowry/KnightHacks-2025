@@ -15,6 +15,8 @@ function isUrlAllowed(url) {
                     const allowedDomain = new URL(allowedUrl).hostname;
                     const currentDomain = new URL(url).hostname;
                     return currentDomain.includes(allowedDomain);
+                    
+                // Catchs invalid URLs (error catcher)
                 } catch (e) {
                     return false;
                 }
