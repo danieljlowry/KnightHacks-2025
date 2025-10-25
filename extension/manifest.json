@@ -1,10 +1,9 @@
 {
-  "name": "Study Companion",
+  "name": "Study Companion App",
   "description": "Extension to help you focus and manage your study sessions effectively.",
   "version": "1.0",
   "manifest_version": 3,
   "action": {
-    "default_popup": "index.html",
-    "default_icon": "study_icon.jpg"
+    "default_popup": "index.html"
   }
 }
