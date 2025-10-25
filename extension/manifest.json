@@ -13,9 +13,5 @@
   },
   "background": {
     "service_worker": "background.js"
-  },
-  "icons": {
-    "48": "images/study_icon48.png",
-    "128": "images/study_icon128.png"
   }
 }
