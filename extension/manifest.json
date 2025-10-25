@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "DDOS: 'Distraction' Denial Of Service",
+  "version": "1.0",
+  "description": "Have trouble focusing white studying? Suffer no longer! Now, you can focus on your tasks online! Or face the loud (and annoying) consequences!",
+  "permissions": [
+    "storage",
+    "tabs",
+    "notifications",
+    "webNavigation"
+  ],
+  "icons": {
+    "48": "images/study_icon48.png",
+    "128": "images/study_icon128.png"
+  },
+  "action": {
+    "default_popup": "pages/popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
