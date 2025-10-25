@@ -1,0 +1,35 @@
+body { 
+    width: 320px; 
+    padding: 12px; 
+    font-family: Arial, sans-serif; 
+}
+
+form { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+
+label { 
+    font-size: 13px; 
+}
+        
+
+input[type="url"] { 
+    padding: 6px; 
+    font-size: 13px;
+}
+
+button { 
+    padding: 8px; 
+    font-size: 14px;
+    background-color: red; 
+    color:white;
+}
+        
+#status { 
+    margin-top: 8px; 
+    font-size: 13px; 
+    color: green; 
+    height: 18px; 
+}

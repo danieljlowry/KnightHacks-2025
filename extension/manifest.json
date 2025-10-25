@@ -6,7 +6,8 @@
   "permissions": [
     "storage",
     "tabs",
-    "notifications"
+    "notifications",
+    "webNavigation"
   ],
   "action": {
     "default_popup": "pages/popup.html"
