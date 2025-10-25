@@ -1,3 +1,8 @@
+/*
+Background script, monitors tab changes, notifies user if accessing unapproved sites
+*/
+
+
 // URL CHECKER FUNCTION ------------------------------------------------------------------------------------------
 
 // Promise-wrapped storage check (callback-safe)

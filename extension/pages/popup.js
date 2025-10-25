@@ -1,3 +1,8 @@
+/*
+Functionality for popup.html: saves allowed websites, clear saved websites, autosaves text fields
+*/
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     const inputIds = ['URL1', 'URL2', 'URL3'];

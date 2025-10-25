@@ -1,8 +1,17 @@
+/* 
+Styles for popup.html
+*/
+
 body { 
     width: 320px; 
     padding: 12px; 
     font-family: Arial, sans-serif; 
 }
+
+
+/* 
+FORM STYLING ---------------------------------------------------------------------------------------------
+ */
 
 form { 
     display: flex; 
@@ -20,7 +29,9 @@ input[type="url"] {
     font-size: 13px;
 }
 
-/* Save websites button */
+/* 
+SAVE WEBSITES BUTTON ---------------------------------------------------------------------------------------------
+ */
 .btn {
     padding: 8px 10px;
     font-size: 14px;
@@ -31,16 +42,11 @@ input[type="url"] {
     cursor: pointer;
 }
 
-/* Clear webstites button */
+/* 
+CLEAR SAVED WEBSITES ---------------------------------------------------------------------------------------------
+ */
 .btn.blue {
     background-color: #1976d2; 
-}
-        
-#status { 
-    margin-top: 8px; 
-    font-size: 13px; 
-    color: green; 
-    height: 18px; 
 }
 
 .clearSave {
@@ -59,6 +65,11 @@ input[type="url"] {
     cursor: pointer;
 }
 
-
+#status { 
+    margin-top: 8px; 
+    font-size: 13px; 
+    color: green; 
+    height: 18px; 
+}
 
    
