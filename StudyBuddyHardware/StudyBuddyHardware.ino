@@ -102,7 +102,7 @@ void loop() {
         {
           onTaskFlag = 1;
         }
-        //tone(BUZZER, 85);
+        tone(BUZZER, 85);
       }
       else if (command == "on_task") 
       {
