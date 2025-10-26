@@ -129,7 +129,7 @@ void loop() {
     else
     {
         sad.draw();
-        //tone(BUZZER, 85);
+        tone(BUZZER, 85);
     }
 
     lastPresent = phonePresent;
