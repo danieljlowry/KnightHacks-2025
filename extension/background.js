@@ -2,14 +2,14 @@
 Background script, monitors tab changes, notifies user if accessing unapproved sites
 */
 
-function sendToESP(state) {
+function sendToArduino(state) {
   fetch(`http://localhost:5000/status?state=${state}`)
-    .catch(err => console.error("ESP unreachable:", err));
+    .catch(err => console.error("Arduino unreachable:", err));
 }
 
 // Example: after checking the tab
-if (true) sendToESP("on_task");
-else sendToESP("off_task");
+if (true) sendToArduino("on_task");
+else sendToArduino("off_task");
 
 // URL CHECKER FUNCTION ------------------------------------------------------------------------------------------
 
