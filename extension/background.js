@@ -1,317 +1,464 @@
 /*
-Background script, monitors tab changes, notifies user if accessing unapproved sites
+DDOS Extension - Background Script
+A clean, refactored version focused on reliability and simplicity
 */
 
-/*
-Issue: Timer is broken, doesn't properly update in-real time, requires tab switching or a manually reset to update badge.
-Currently unable to transition between study/break periods properly. Gets stuck on 1 minute left on study period (red badge). Requires a
-manual reset to transition to break period (blue badge).
-*/
+// ============================================================================
+// TIMER STATE MANAGEMENT
+// ============================================================================
 
-// TIMER STATE MANAGEMENT ------------------------------------------------------------------------------------------
-
-let timerState = {
-    isBreak: false,           // true during break, false during study
-    timeLeft: 0,              // minutes remaining in current period
-    endTime: null,
-    tickAlarmName: 'ddos_timer_tick',
-    endAlarmName: 'ddos_timer_end',
-    notificationsEnabled: true
-};
-
-// LOAD INPUTTED TIMER SETTINGS ------------------------------------------------------------------------------------------
-
-// Initialize timer every time the worker wakes up
-async function initializeTimer() {
-    const data = await chrome.storage.local.get([
-        'studyMinutes', 'breakMinutes', 'timerEndTime', 'isBreak'
-    ]);
-
-    const study = data.studyMinutes || 25;
-    const brk = data.breakMinutes || 5;
-    const endTime = data.timerEndTime || null;
-    const isBreak = !!data.isBreak;
-    const now = Date.now();
-
-    if (endTime && endTime > now) {
-        timerState.endTime = endTime;
-        timerState.isBreak = isBreak;
-        computeTimeLeftAndSchedule(study, brk);
-    } else {
-        // Timer expired or not set → transition or start fresh
-        if (endTime && endTime <= now) {
-            // period has expired → handle it immediately
-            timerState.isBreak = isBreak;
-            await handleEndAlarm();
-        } else {
-            // brand new session
-            startStudyPeriod(study, brk);
-        }
+class TimerManager {
+    constructor() {
+        this.state = {
+            isBreak: false,
+            timeLeft: 0,
+            endTime: null,
+            isInitialized: false,
+            notificationsEnabled: true
+        };
+        
+        this.alarmNames = {
+            tick: 'ddos_timer_tick',
+            end: 'ddos_timer_end'
+        };
+        
+        this.updateInterval = null;
+        this.init();
     }
-}
-
-// Always call on startup and worker wakeup
-initializeTimer();
-
-
-// START STUDY PERIOD FUNCTION ------------------------------------------------------------------------------------------
-
-// Use chrome.alarms + endTime to make timers reliable in MV3 service worker
-function startStudyPeriod(studyMin, breakMin) {
-    clearAlarm();
-
-    timerState.isBreak = false;
-    timerState.notificationsEnabled = true;
-    timerState.endTime = Date.now() + studyMin * 60 * 1000;
-    persistTimerState();
-
-    // Update badge immediately and schedule minute ticks via alarms
-    handleTick();
-    // periodic tick alarm (minute updates)
-    chrome.alarms.create(timerState.tickAlarmName, { periodInMinutes: 1 });
-    // exact end alarm to trigger transition promptly
-    chrome.alarms.create(timerState.endAlarmName, { when: timerState.endTime });
-}
-
-// START BREAK PERIOD FUNCTION ------------------------------------------------------------------------------------------
-
-function startBreakPeriod(breakMin, studyMin) {
-    clearAlarm();
-
-    timerState.isBreak = true;
-    timerState.notificationsEnabled = false;
-    timerState.endTime = Date.now() + breakMin * 60 * 1000;
-    persistTimerState();
-
-    handleTick();
-    chrome.alarms.create(timerState.tickAlarmName, { periodInMinutes: 1 });
-    chrome.alarms.create(timerState.endAlarmName, { when: timerState.endTime });
-}
-
-function clearAlarm() {
-    try {
-        chrome.alarms.clear(timerState.tickAlarmName);
-        chrome.alarms.clear(timerState.endAlarmName);
-    } catch (e) {
-        // ignore
-    }
-}
-
-function persistTimerState() {
-    chrome.storage.local.set({ timerEndTime: timerState.endTime, isBreak: !!timerState.isBreak });
-}
-
-function computeTimeLeftAndSchedule(studyMin, breakMin) {
-    const now = Date.now();
-    if (!timerState.endTime || timerState.endTime <= now) {
-        // endTime passed -> immediately transition
-        if (timerState.isBreak) {
-            startStudyPeriod(studyMin, breakMin);
-            notifyPeriodChange("Break's over! Back to studying.");
-        } else {
-            startBreakPeriod(breakMin, studyMin);
-            notifyPeriodChange("Time for a break!");
-        }
-        return;
-    }
-
-    // Otherwise schedule alarm ticks and update badge now
-    handleTick();
-    chrome.alarms.create(timerState.tickAlarmName, { periodInMinutes: 1 });
-    chrome.alarms.create(timerState.endAlarmName, { when: timerState.endTime });
-}
-
-function handleTick() {
-    if (!timerState.endTime) {
-        timerState.timeLeft = 0;
-        updateBadge();
-        return;
-    }
-
-    const msLeft = timerState.endTime - Date.now();
-    timerState.timeLeft = Math.max(0, Math.ceil(msLeft / (60 * 1000)));
-    updateBadge();
-
-    if (msLeft <= 0) {
-        // As a fallback in case the end alarm didn't fire, transition now
-        handleEndAlarm();
-    }
-}
-
-async function handleEndAlarm() {
-    persistTimerState();
-    const data = await chrome.storage.local.get(['studyMinutes', 'breakMinutes']);
-    const studyMin = data.studyMinutes || 25;
-    const breakMin = data.breakMinutes || 5;
-
-    if (timerState.isBreak) {
-        startStudyPeriod(studyMin, breakMin);
-        notifyPeriodChange("Break's over! Back to studying.");
-    } else {
-        startBreakPeriod(breakMin, studyMin);
-        notifyPeriodChange("Time for a break!");
-    }
-}
-
-function updateBadge() {
-
-    const text = `${timerState.timeLeft}`;
-    const color = timerState.isBreak ? '#1976d2' : '#c0392b';
     
-    chrome.action.setBadgeText({ text });
-    chrome.action.setBadgeBackgroundColor({ color });
-
-} // end updateBadge
-
-// NOTIFICATION MESSAGE FUNCTION ------------------------------------------------------------------------------------------
-
-function notifyPeriodChange(message) {
-
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'images/swap_icon.png',
-        title: 'DDOS Timer',
-        message: message
-    });
-
-} // end notifyPeriodChange
-
-// LISTEN FOR SETTINGS CHANGES ------------------------------------------------------------------------------------------
-
-chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && (changes.studyMinutes || changes.breakMinutes)) {
-        chrome.storage.local.get(['studyMinutes', 'breakMinutes'], (data) => {
-            if (data.studyMinutes && data.breakMinutes) {
-                // Restart current period with new times
-                if (timerState.isBreak) {
-                    startBreakPeriod(data.breakMinutes, data.studyMinutes);
-                } else {
-                    startStudyPeriod(data.studyMinutes, data.breakMinutes);
-                }
+    // Initialize timer on startup
+    async init() {
+        console.log('DDOS: Initializing timer manager');
+        
+        try {
+            const data = await this.getStorageData(['studyMinutes', 'breakMinutes', 'timerEndTime', 'isBreak']);
+            const studyMin = data.studyMinutes || 25;
+            const breakMin = data.breakMinutes || 5;
+            const endTime = data.timerEndTime;
+            const isBreak = data.isBreak || false;
+            
+            console.log('DDOS: Loaded settings', { studyMin, breakMin, endTime, isBreak });
+            
+            if (endTime && endTime > Date.now()) {
+                // Resume existing timer
+                this.state.endTime = endTime;
+                this.state.isBreak = isBreak;
+                this.state.isInitialized = true;
+                this.startTimerUpdates();
+                this.updateDisplay();
+                console.log('DDOS: Resumed existing timer');
+            } else {
+                // Start new timer
+                this.state.isInitialized = true;
+                this.startStudyPeriod(studyMin, breakMin);
+                console.log('DDOS: Started new timer');
             }
+        } catch (error) {
+            console.error('DDOS: Initialization error', error);
+            this.state.isInitialized = true;
+            this.startStudyPeriod(25, 5); // Fallback
+        }
+    }
+    
+    // Start study period
+    startStudyPeriod(studyMin, breakMin) {
+        console.log('DDOS: Starting study period', { studyMin, breakMin });
+        
+        this.clearAllTimers();
+        
+        this.state.isBreak = false;
+        this.state.notificationsEnabled = true;
+        this.state.endTime = Date.now() + (studyMin * 60 * 1000);
+        
+        this.saveState();
+        this.startTimerUpdates();
+        this.updateDisplay();
+        
+        console.log('DDOS: Study period started, ends at', new Date(this.state.endTime));
+    }
+    
+    // Start break period
+    startBreakPeriod(breakMin, studyMin) {
+        console.log('DDOS: Starting break period', { breakMin, studyMin });
+        
+        this.clearAllTimers();
+        
+        this.state.isBreak = true;
+        this.state.notificationsEnabled = false;
+        this.state.endTime = Date.now() + (breakMin * 60 * 1000);
+        
+        this.saveState();
+        this.startTimerUpdates();
+        this.updateDisplay();
+        
+        console.log('DDOS: Break period started, ends at', new Date(this.state.endTime));
+    }
+    
+    // Start timer update mechanisms
+    startTimerUpdates() {
+        this.clearAllTimers();
+        
+        // Create Chrome alarms for reliability
+        try {
+            chrome.alarms.create(this.alarmNames.tick, { periodInMinutes: 1 });
+            chrome.alarms.create(this.alarmNames.end, { when: this.state.endTime });
+            console.log('DDOS: Chrome alarms created');
+        } catch (error) {
+            console.error('DDOS: Error creating alarms', error);
+        }
+        
+        // Start frequent updates for responsiveness
+        this.updateInterval = setInterval(() => {
+            this.tick();
+        }, 2000); // Update every 2 seconds
+        
+        console.log('DDOS: Timer updates started');
+    }
+    
+    // Clear all timers and alarms
+    clearAllTimers() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+        }
+        
+        try {
+            chrome.alarms.clear(this.alarmNames.tick);
+            chrome.alarms.clear(this.alarmNames.end);
+        } catch (error) {
+            console.warn('DDOS: Error clearing alarms', error);
+        }
+    }
+    
+    // Main timer tick function
+    tick() {
+        if (!this.state.endTime) {
+            this.state.timeLeft = 0;
+            this.updateDisplay();
+            return;
+        }
+        
+        const now = Date.now();
+        const msLeft = this.state.endTime - now;
+        this.state.timeLeft = Math.max(0, Math.ceil(msLeft / (60 * 1000)));
+        
+        console.log('DDOS: Timer tick', {
+            timeLeft: this.state.timeLeft,
+            isBreak: this.state.isBreak,
+            msLeft: msLeft
+        });
+        
+        this.updateDisplay();
+        
+        // Check if timer expired
+        if (msLeft <= 0) {
+            console.log('DDOS: Timer expired, transitioning');
+            this.handlePeriodEnd();
+        }
+    }
+    
+    // Handle period end transition
+    async handlePeriodEnd() {
+        console.log('DDOS: Handling period end');
+        
+        try {
+            const data = await this.getStorageData(['studyMinutes', 'breakMinutes']);
+            const studyMin = data.studyMinutes || 25;
+            const breakMin = data.breakMinutes || 5;
+            
+            if (this.state.isBreak) {
+                this.startStudyPeriod(studyMin, breakMin);
+                this.showNotification("Break's over! Back to studying.");
+            } else {
+                this.startBreakPeriod(breakMin, studyMin);
+                this.showNotification("Time for a break!");
+            }
+        } catch (error) {
+            console.error('DDOS: Error handling period end', error);
+            this.startStudyPeriod(25, 5); // Fallback
+        }
+    }
+    
+    // Update display (badge)
+    updateDisplay() {
+        try {
+            const text = this.state.timeLeft.toString();
+            const color = this.state.isBreak ? '#1976d2' : '#c0392b';
+            
+            chrome.action.setBadgeText({ text });
+            chrome.action.setBadgeBackgroundColor({ color });
+            
+            console.log('DDOS: Badge updated', { text, color });
+        } catch (error) {
+            console.error('DDOS: Error updating badge', error);
+        }
+    }
+    
+    // Save timer state to storage
+    saveState() {
+        try {
+            chrome.storage.local.set({
+                timerEndTime: this.state.endTime,
+                isBreak: this.state.isBreak
+            });
+        } catch (error) {
+            console.error('DDOS: Error saving state', error);
+        }
+    }
+    
+    // Get data from storage
+    getStorageData(keys) {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(keys, (data) => {
+                resolve(data);
+            });
         });
     }
-}); // end storage change listener
-
-// Alarm listener for periodic ticks (fires even if service worker restarts)
-if (chrome.alarms && chrome.alarms.onAlarm) {
-    chrome.alarms.onAlarm.addListener((alarm) => {
+    
+    // Show notification
+    showNotification(message) {
         try {
-            if (!alarm || !alarm.name) return;
-            if (alarm.name === timerState.tickAlarmName) {
-                handleTick();
-            } else if (alarm.name === timerState.endAlarmName) {
-                // Ensure immediate transition at period end
-                handleEndAlarm();
-            }
-        } catch (e) {
-            console.error('alarm handler error', e);
+            console.log('DDOS: Showing notification:', message);
+            
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'images/study_icon48.png',
+                title: 'DDOS Timer',
+                message: message
+            }, (notificationId) => {
+                if (chrome.runtime.lastError) {
+                    console.error('DDOS: Notification error:', chrome.runtime.lastError);
+                } else {
+                    console.log('DDOS: Notification created:', notificationId);
+                }
+            });
+        } catch (error) {
+            console.error('DDOS: Error creating notification', error);
         }
-    });
+    }
+    
+    // Reset timer
+    async reset() {
+        console.log('DDOS: Resetting timer');
+        this.clearAllTimers();
+        this.state.isInitialized = false;
+        await this.init();
+    }
+    
+    // Update settings and restart timer
+    async updateSettings() {
+        console.log('DDOS: Updating settings');
+        const data = await this.getStorageData(['studyMinutes', 'breakMinutes']);
+        const studyMin = data.studyMinutes || 25;
+        const breakMin = data.breakMinutes || 5;
+        
+        this.clearAllTimers();
+        this.state.isInitialized = false;
+        this.startStudyPeriod(studyMin, breakMin);
+    }
+    
+    // Get current status
+    getStatus() {
+        return {
+            isInitialized: this.state.isInitialized,
+            isBreak: this.state.isBreak,
+            timeLeft: this.state.timeLeft,
+            endTime: this.state.endTime,
+            notificationsEnabled: this.state.notificationsEnabled
+        };
+    }
 }
 
-// URL CHECKER FUNCTION ------------------------------------------------------------------------------------------
+// ============================================================================
+// WEBSITE MONITORING
+// ============================================================================
 
-// Promise-wrapped storage check (callback-safe)
-function isUrlAllowed(url) {
-    return new Promise(resolve => {
-        chrome.storage.local.get(['allowedWebsites'], function(data) {
+class WebsiteMonitor {
+    constructor(timerManager) {
+        this.timerManager = timerManager;
+        this.lastNotified = new Map();
+        this.notifyInterval = 10000; // 10 seconds
+    }
+    
+    // Check if URL is allowed
+    async isUrlAllowed(url) {
+        try {
+            const data = await this.timerManager.getStorageData(['allowedWebsites']);
             const allowedWebsites = data.allowedWebsites || [];
-            const allowed = allowedWebsites.some(allowedUrl => {
+            
+            return allowedWebsites.some(allowedUrl => {
                 try {
                     const allowedDomain = new URL(allowedUrl).hostname;
                     const currentDomain = new URL(url).hostname;
                     return currentDomain.includes(allowedDomain);
-
-                // Catchs invalid URLs (error catcher)
                 } catch (e) {
                     return false;
                 }
             });
-            resolve(allowed);
-        });
-    });
-} // end isUrlAllowed
-
-
-// NOTIFICATION RATE LIMITER -----------------------------------------------------------------------------------
-
-// Avoids spamming user with notifications for the same tab
-const lastNotified = new Map();
-const NOTIFY_INTERVAL_MS = 10 * 1000; // 10 seconds
-
-function shouldNotify(tabId) {
-
-    const last = lastNotified.get(tabId) || 0;
-    const now = Date.now();
-    if (now - last > NOTIFY_INTERVAL_MS) {
-        lastNotified.set(tabId, now);
-        return true;
-    }
-    return false;
-
-} // end shouldNotify
-
-
-// CHECK URL AND NOTIFY FUNCTION ------------------------------------------------------------------------------------------
-
-// Checks if the URL is allowed and shows notification if not
-async function checkUrlAndNotify(tab) {
-    try {
-        // Skip checks during break time
-        if (!timerState.notificationsEnabled) return;
-        
-        if (!tab || !tab.url) return;
-        if (!(tab.url.startsWith('http://') || tab.url.startsWith('https://'))) return;
-
-        // Checks if URL is allowed
-        const allowed = await isUrlAllowed(tab.url);
-        if (!allowed && shouldNotify(tab.id)) {
-            chrome.notifications.create({
-                type: 'basic',
-                iconUrl: 'images/warning_icon.png',
-                title: 'WARNING: Unauthorized Website Accessed!',
-                message: 'HEY! This website is NOT on your allowed list. Stay focused!'
-            });
+        } catch (error) {
+            console.error('DDOS: Error checking URL', error);
+            return false;
         }
-
-    // Catchs any errors to avoid breaking the background script
-    } catch (e) {
-        console.error('checkUrlAndNotify error', e);
     }
     
-} // end checkUrlAndNotify
+    // Check if should notify (rate limiting)
+    shouldNotify(tabId) {
+        const last = this.lastNotified.get(tabId) || 0;
+        const now = Date.now();
+        
+        if (now - last > this.notifyInterval) {
+            this.lastNotified.set(tabId, now);
+            return true;
+        }
+        return false;
+    }
+    
+    // Check URL and notify if unauthorized
+    async checkUrlAndNotify(tab) {
+        try {
+            // Skip checks during break time
+            if (!this.timerManager.state.notificationsEnabled) {
+                return;
+            }
+            
+            if (!tab || !tab.url) return;
+            if (!(tab.url.startsWith('http://') || tab.url.startsWith('https://'))) return;
+            
+            const allowed = await this.isUrlAllowed(tab.url);
+            
+            if (!allowed && this.shouldNotify(tab.id)) {
+                console.log('DDOS: Unauthorized website accessed:', tab.url);
+                
+                chrome.notifications.create({
+                    type: 'basic',
+                    iconUrl: 'images/warning_icon.png',
+                    title: 'WARNING: Unauthorized Website Accessed!',
+                    message: 'HEY! This website is NOT on your allowed list. Stay focused!'
+                }, (notificationId) => {
+                    if (chrome.runtime.lastError) {
+                        console.error('DDOS: Warning notification error:', chrome.runtime.lastError);
+                    } else {
+                        console.log('DDOS: Warning notification created:', notificationId);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('DDOS: Error checking URL', error);
+        }
+    }
+}
 
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-// EVENT LISTENERS FOR TAB AND NAVIGATION CHANGES ------------------------------------------------------------------
+// Create global instances
+const timerManager = new TimerManager();
+const websiteMonitor = new WebsiteMonitor(timerManager);
 
-// Tab update listener
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if ((changeInfo.url || changeInfo.status === 'complete') && tab && tab.url) {
-        checkUrlAndNotify(tab);
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+
+// Chrome alarms listener
+chrome.alarms.onAlarm.addListener((alarm) => {
+    console.log('DDOS: Alarm fired:', alarm.name, new Date());
+    
+    if (alarm.name === timerManager.alarmNames.tick) {
+        timerManager.tick();
+    } else if (alarm.name === timerManager.alarmNames.end) {
+        timerManager.handlePeriodEnd();
     }
 });
 
-// User switches tabs
-chrome.tabs.onActivated.addListener(activeInfo => {
-    chrome.tabs.get(activeInfo.tabId, function(tab) {
-        checkUrlAndNotify(tab);
+// Storage change listener
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === 'local' && (changes.studyMinutes || changes.breakMinutes)) {
+        console.log('DDOS: Settings changed, updating timer');
+        timerManager.updateSettings();
+    }
+});
+
+// Tab monitoring listeners
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if ((changeInfo.url || changeInfo.status === 'complete') && tab && tab.url) {
+        websiteMonitor.checkUrlAndNotify(tab);
+    }
+});
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+    chrome.tabs.get(activeInfo.tabId, (tab) => {
+        websiteMonitor.checkUrlAndNotify(tab);
     });
 });
 
-// User switches windows
-chrome.windows.onFocusChanged.addListener(windowId => {
+chrome.windows.onFocusChanged.addListener((windowId) => {
     if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-    chrome.tabs.query({ active: true, windowId: windowId }, function(tabs) {
-        if (tabs && tabs[0]) checkUrlAndNotify(tabs[0]);
+    chrome.tabs.query({ active: true, windowId: windowId }, (tabs) => {
+        if (tabs && tabs[0]) {
+            websiteMonitor.checkUrlAndNotify(tabs[0]);
+        }
     });
 });
 
-// For single-page apps that change history via pushState, listen for history updates
+// History state updates for single-page apps
 if (chrome.webNavigation && chrome.webNavigation.onHistoryStateUpdated) {
-    chrome.webNavigation.onHistoryStateUpdated.addListener(details => {
-        chrome.tabs.get(details.tabId, function(tab) {
-            if (tab) checkUrlAndNotify(tab);
+    chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+        chrome.tabs.get(details.tabId, (tab) => {
+            if (tab) websiteMonitor.checkUrlAndNotify(tab);
         });
     });
 }
+
+// ============================================================================
+// MESSAGE HANDLING
+// ============================================================================
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('DDOS: Message received:', request.action);
+    
+    switch (request.action) {
+        case 'startTimer':
+            timerManager.reset();
+            sendResponse({ success: true });
+            break;
+            
+        case 'resetTimer':
+            timerManager.reset();
+            sendResponse({ success: true });
+            break;
+            
+        case 'updateSettings':
+            timerManager.updateSettings();
+            sendResponse({ success: true });
+            break;
+            
+        case 'testNotification':
+            timerManager.showNotification('Test notification - timer is working!');
+            sendResponse({ success: true });
+            break;
+            
+        case 'getTimerStatus':
+            sendResponse({ success: true, status: timerManager.getStatus() });
+            break;
+            
+        default:
+            sendResponse({ success: false, error: 'Unknown action' });
+    }
+});
+
+// ============================================================================
+// STARTUP EVENTS
+// ============================================================================
+
+chrome.runtime.onStartup.addListener(() => {
+    console.log('DDOS: Extension startup');
+    timerManager.init();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+    console.log('DDOS: Extension installed');
+    timerManager.init();
+});
+
+console.log('DDOS: Background script loaded');

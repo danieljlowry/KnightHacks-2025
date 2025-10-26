@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refactored Timer Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .test-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .test-btn { background: #28a745; }
+        .test-btn:hover { background: #218838; }
+        .timer-display { font-size: 24px; font-weight: bold; color: #c0392b; text-align: center; margin: 10px 0; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>Refactored Timer Test</h1>
+    
+    <div class="test-section">
+        <h3>Timer Status</h3>
+        <div id="timer-display" class="timer-display">Loading...</div>
+        <div id="timer-details" class="status info">Loading details...</div>
+        <button onclick="checkStatus()">Check Status</button>
+        <button onclick="startTimer()" class="test-btn">Start Timer</button>
+        <button onclick="resetTimer()">Reset Timer</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Quick Tests</h3>
+        <button onclick="testShortTimer()" class="test-btn">Test 2-Minute Timer</button>
+        <button onclick="testNotification()" class="test-btn">Test Notification</button>
+        <button onclick="testSettings()" class="test-btn">Test Settings Change</button>
+        <div id="test-results" class="status info">Click buttons to test functionality</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Console Logs</h3>
+        <p>Open Chrome DevTools Console (F12) to see detailed logs from the refactored timer.</p>
+        <div id="console-info" class="status info">
+            Look for messages starting with "DDOS:" in the console
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ action: 'getTimerStatus' }, function(response) {
+                    if (response && response.success) {
+                        const status = response.status;
+                        console.log('Timer Status:', status);
+                        
+                        document.getElementById('timer-details').innerHTML = 
+                            `<strong>Timer Details:</strong><br>
+                            Initialized: ${status.isInitialized}<br>
+                            Is Break: ${status.isBreak}<br>
+                            Time Left: ${status.timeLeft} minutes<br>
+                            End Time: ${status.endTime ? new Date(status.endTime).toLocaleString() : 'None'}<br>
+                            Notifications: ${status.notificationsEnabled}`;
+                        
+                        if (status.endTime && status.endTime > Date.now()) {
+                            const timeLeft = Math.max(0, Math.ceil((status.endTime - Date.now()) / (60 * 1000)));
+                            document.getElementById('timer-display').textContent = `${timeLeft}m`;
+                        } else {
+                            document.getElementById('timer-display').textContent = 'No Timer';
+                        }
+                    } else {
+                        console.error('Failed to get timer status:', response?.error);
+                    }
+                });
+            } else {
+                document.getElementById('timer-details').innerHTML = 
+                    '<div class="error">Extension not detected</div>';
+            }
+        }
+        
+        function startTimer() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ action: 'startTimer' }, function(response) {
+                    if (response && response.success) {
+                        console.log('Timer started successfully');
+                        document.getElementById('test-results').innerHTML = 
+                            '<div class="success">Timer started! Check the extension badge.</div>';
+                        setTimeout(checkStatus, 1000);
+                    } else {
+                        console.error('Failed to start timer:', response?.error);
+                        document.getElementById('test-results').innerHTML = 
+                            '<div class="error">Failed to start timer</div>';
+                    }
+                });
+            } else {
+                document.getElementById('test-results').innerHTML = 
+                    '<div class="error">Extension not detected</div>';
+            }
+        }
+        
+        function resetTimer() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ action: 'resetTimer' }, function(response) {
+                    if (response && response.success) {
+                        console.log('Timer reset successfully');
+                        document.getElementById('test-results').innerHTML = 
+                            '<div class="success">Timer reset!</div>';
+                        setTimeout(checkStatus, 1000);
+                    } else {
+                        console.error('Failed to reset timer:', response?.error);
+                    }
+                });
+            }
+        }
+        
+        function testShortTimer() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                // Set a 2-minute timer for quick testing
+                chrome.storage.local.set({ studyMinutes: 2, breakMinutes: 1 }, function() {
+                    console.log('Set 2-minute timer settings');
+                    startTimer();
+                    document.getElementById('test-results').innerHTML = 
+                        '<div class="info">2-minute timer set. Watch the countdown!</div>';
+                });
+            }
+        }
+        
+        function testNotification() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ action: 'testNotification' }, function(response) {
+                    if (response && response.success) {
+                        console.log('Test notification sent');
+                        document.getElementById('test-results').innerHTML = 
+                            '<div class="success">Test notification sent! Check your notifications.</div>';
+                    } else {
+                        console.error('Failed to send notification:', response?.error);
+                    }
+                });
+            }
+        }
+        
+        function testSettings() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                // Change settings to trigger timer update
+                chrome.storage.local.set({ studyMinutes: 3, breakMinutes: 1 }, function() {
+                    console.log('Settings changed to 3/1');
+                    document.getElementById('test-results').innerHTML = 
+                        '<div class="info">Settings changed to 3min study, 1min break. Timer should restart.</div>';
+                    setTimeout(checkStatus, 1000);
+                });
+            }
+        }
+        
+        // Auto-refresh every 3 seconds
+        setInterval(checkStatus, 3000);
+        
+        // Initial check
+        window.addEventListener('load', function() {
+            console.log('Refactored timer test loaded');
+            checkStatus();
+        });
+    </script>
+</body>
+</html>

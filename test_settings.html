@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .test-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .status { padding: 10px; margin: 5px 0; border-radius: 3px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .preset-btn { background: #6c757d; margin: 2px; padding: 4px 8px; font-size: 12px; }
+        .preset-btn:hover { background: #5a6268; }
+    </style>
+</head>
+<body>
+    <h1>DDOS Settings Test</h1>
+    
+    <div class="test-section">
+        <h3>Current Settings</h3>
+        <div id="current-settings" class="status info">Loading...</div>
+        <button onclick="checkSettings()">Check Settings</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Settings Changes</h3>
+        <div>
+            <label>Study Time: <input type="number" id="study-input" value="25" min="1" style="width: 60px;"> minutes</label>
+        </div>
+        <div style="margin: 10px 0;">
+            <label>Break Time: <input type="number" id="break-input" value="5" min="0" style="width: 60px;"> minutes</label>
+        </div>
+        <button onclick="saveSettings()">Save Settings</button>
+        <button onclick="resetSettings()">Reset Settings</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Quick Presets</h3>
+        <button class="preset-btn" onclick="setPreset(25, 5)">25/5 (Pomodoro)</button>
+        <button class="preset-btn" onclick="setPreset(45, 15)">45/15 (Extended)</button>
+        <button class="preset-btn" onclick="setPreset(15, 3)">15/3 (Short)</button>
+        <button class="preset-btn" onclick="setPreset(50, 10)">50/10 (Long)</button>
+    </div>
+    
+    <div class="test-section">
+        <h3>Timer Status</h3>
+        <div id="timer-status" class="status info">Loading...</div>
+        <button onclick="checkTimer()">Check Timer</button>
+        <button onclick="startTimer()">Start Timer</button>
+    </div>
+
+    <script>
+        function checkSettings() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                chrome.storage.local.get(['studyMinutes', 'breakMinutes'], function(data) {
+                    const study = data.studyMinutes || 25;
+                    const breakTime = data.breakMinutes || 5;
+                    
+                    document.getElementById('current-settings').innerHTML = 
+                        `<strong>Current Settings:</strong><br>Study: ${study} minutes<br>Break: ${breakTime} minutes`;
+                    
+                    // Update input fields
+                    document.getElementById('study-input').value = study;
+                    document.getElementById('break-input').value = breakTime;
+                });
+            } else {
+                document.getElementById('current-settings').innerHTML = 'Extension not detected';
+            }
+        }
+        
+        function saveSettings() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                const study = parseInt(document.getElementById('study-input').value);
+                const breakTime = parseInt(document.getElementById('break-input').value);
+                
+                if (study <= 0 || breakTime < 0) {
+                    alert('Invalid values! Study time must be > 0, break time must be >= 0');
+                    return;
+                }
+                
+                if (breakTime > study * 0.5) {
+                    alert('Break time cannot exceed 50% of study time!');
+                    return;
+                }
+                
+                chrome.storage.local.set({ studyMinutes: study, breakMinutes: breakTime }, function() {
+                    console.log('Settings saved:', { study, breakTime });
+                    alert(`Settings saved: ${study}min study, ${breakTime}min break`);
+                    checkSettings();
+                });
+            } else {
+                alert('Extension not detected');
+            }
+        }
+        
+        function resetSettings() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                chrome.storage.local.remove(['studyMinutes', 'breakMinutes'], function() {
+                    console.log('Settings reset');
+                    alert('Settings reset to defaults');
+                    checkSettings();
+                });
+            } else {
+                alert('Extension not detected');
+            }
+        }
+        
+        function setPreset(study, breakTime) {
+            document.getElementById('study-input').value = study;
+            document.getElementById('break-input').value = breakTime;
+            saveSettings();
+        }
+        
+        function checkTimer() {
+            if (typeof chrome !== 'undefined' && chrome.storage) {
+                chrome.storage.local.get(['timerEndTime', 'isBreak'], function(data) {
+                    const endTime = data.timerEndTime;
+                    const isBreak = data.isBreak;
+                    
+                    if (!endTime) {
+                        document.getElementById('timer-status').innerHTML = 'No timer running';
+                        return;
+                    }
+                    
+                    const now = Date.now();
+                    const timeLeft = Math.max(0, Math.ceil((endTime - now) / (60 * 1000)));
+                    const period = isBreak ? 'Break' : 'Study';
+                    
+                    document.getElementById('timer-status').innerHTML = 
+                        `<strong>Timer Active:</strong><br>Period: ${period}<br>Time Left: ${timeLeft} minutes`;
+                });
+            } else {
+                document.getElementById('timer-status').innerHTML = 'Extension not detected';
+            }
+        }
+        
+        function startTimer() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({ action: 'startTimer' }, function(response) {
+                    if (response && response.success) {
+                        console.log('Timer started');
+                        checkTimer();
+                    } else {
+                        console.error('Failed to start timer:', response?.error);
+                        alert('Failed to start timer: ' + (response?.error || 'Unknown error'));
+                    }
+                });
+            } else {
+                alert('Extension not detected');
+            }
+        }
+        
+        // Auto-check on page load
+        window.addEventListener('load', function() {
+            checkSettings();
+            checkTimer();
+        });
+        
+        // Auto-refresh timer status
+        setInterval(checkTimer, 5000);
+    </script>
+</body>
+</html>

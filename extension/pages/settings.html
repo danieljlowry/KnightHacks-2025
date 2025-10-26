@@ -23,12 +23,22 @@ INPUT TEXTE FIELDS -------------------------------------------------------------
 <form id="settings-form">
     <div class="field">
         <label for="studyTime">Study time (minutes):</label>
-        <input id="studyTime" name="studyTime" type="number" min="1" step="1" required>
+        <input id="studyTime" name="studyTime" type="number" min="1" step="1" value="25" required>
     </div>
 
     <div class="field">
         <label for="breakTime">Break time (minutes):</label>
-        <input id="breakTime" name="breakTime" type="number" min="0" step="1" required>
+        <input id="breakTime" name="breakTime" type="number" min="0" step="1" value="5" required>
+    </div>
+    
+    <div class="field">
+        <label>Quick Presets:</label>
+        <div class="preset-buttons">
+            <button type="button" class="preset-btn" data-study="25" data-break="5">25/5 (Pomodoro)</button>
+            <button type="button" class="preset-btn" data-study="45" data-break="15">45/15 (Extended)</button>
+            <button type="button" class="preset-btn" data-study="15" data-break="3">15/3 (Short)</button>
+            <button type="button" class="preset-btn" data-study="50" data-break="10">50/10 (Long)</button>
+        </div>
     </div>
 
 <!-- 
