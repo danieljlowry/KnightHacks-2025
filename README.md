@@ -1,6 +1,6 @@
-# DDOS: 'Distraction' Denial Of Service
+# Welcome to Study Buddy!
 
-A Chrome extension designed to help students stay focused during study sessions by monitoring website usage and providing Pomodoro-style timer functionality.
+A Chrome extension designed to help students stay focused during study sessions by monitoring website usage and integrating it with a physcial phone-holding device.
 
 ## Features
 
@@ -9,6 +9,7 @@ A Chrome extension designed to help students stay focused during study sessions 
 - **Real-time Badge**: Shows remaining time in the extension icon
 - **Settings Management**: Customize study and break durations
 - **Visual Feedback**: Color-coded timer display (red for study, blue for break)
+- **Hardware Integration**: Sends information to Arduino R4 to respond to
 
 ## Installation
 
@@ -48,13 +49,14 @@ A Chrome extension designed to help students stay focused during study sessions 
 2. **Website Monitoring**: Tracks tab changes and navigation events
 3. **Storage**: Saves settings and timer state using Chrome's local storage
 4. **Notifications**: Shows warnings for unauthorized website access during study time
+5. **Hardware Integration**: Outputs signals to hardware to respond to
 
 ## File Structure
 
 ```
 extension/
-├── manifest.json          # Extension configuration
-├── background.js          # Service worker with timer and monitoring logic
+├── manifest.json          # Chrome extension configuration
+├── background.js          # Service worker with timer and monitoring logic, hardware integration
 ├── pages/
 │   ├── popup.html        # Main extension interface
 │   ├── popup.js          # Popup functionality
@@ -68,12 +70,12 @@ extension/
 
 ## Troubleshooting
 
-### Timer Not Working
+### Timer Not Working?
 - Check that the extension is enabled in `chrome://extensions/`
 - Try refreshing the extension or restarting Chrome
 - Use the "Reset Timer" button in the popup
 
-### Notifications Not Appearing
+### Notifications Not Appearing?
 - Ensure notifications are enabled for Chrome in your system settings
 - Check that the extension has notification permissions
 
