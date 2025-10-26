@@ -34,17 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const brk = Number(breakInput.value);
 
     if (!isFinite(study) || study <= 0) {
-      showMessage('Study time must be greater than zero.', true);
+      showMessage('Error: Study time must be greater than zero.', true);
       return false;
     }
     if (!isFinite(brk) || brk < 0) {
-      showMessage('Break time must be zero or greater.', true);
+      showMessage('Error: Break time must be zero or greater.', true);
       return false;
     }
 
     // Hard-coded limit: Break time can NOT exceed 50% of study time
     if (brk > 0.5 * study) {
-      showMessage('Break must be less than or equal to 50% of study time.', true);
+      showMessage('Error: Break must be less than or equal to 50% of study time.', true);
       return false;
     }
 
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // FEEDBACK TO USER ABOUT ACTIONS (SAVE/RESET) --------------------------------------------------------------------------------
-  
+
   studyInput.addEventListener('input', validateValues);
   breakInput.addEventListener('input', validateValues);
 
