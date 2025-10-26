@@ -1,11 +1,28 @@
 /*
 DDOS Extension - Background Script
-A clean, refactored version focused on reliability and simplicity
+Runs in the background to manage timer, monitor websites, and communicate with Arduino
 */
 
-// ============================================================================
-// TIMER STATE MANAGEMENT
-// ============================================================================
+
+/*
+HARDWARE COMMUNICATION --------------------------------------------------------------------------------
+*/
+
+function sendToArduino(state) {
+  fetch(`http://localhost:5000/status?state=${state}`)
+    .catch(err => console.error("ERROR: Arduino unreachable:", err));
+}
+
+// Example: after checking the tab
+if (true) sendToArduino("on_task");
+else sendToArduino("off_task");
+
+// Other communication to hardware is sent within the handlePeriodEnd and checkUnauthorizedState functions below
+
+
+/* 
+TIMER STATE MANAGEMENT --------------------------------------------------------------------------------------
+*/
 
 class TimerManager {
     constructor() {
@@ -60,7 +77,7 @@ class TimerManager {
         }
     }
     
-    // Start study period
+    // Start STUDY period
     startStudyPeriod(studyMin, breakMin) {
         console.log('DDOS: Starting study period', { studyMin, breakMin });
         
@@ -77,7 +94,7 @@ class TimerManager {
         console.log('DDOS: Study period started, ends at', new Date(this.state.endTime));
     }
     
-    // Start break period
+    // Start BREAK period
     startBreakPeriod(breakMin, studyMin) {
         console.log('DDOS: Starting break period', { breakMin, studyMin });
         
@@ -157,7 +174,7 @@ class TimerManager {
         }
     }
     
-    // Handle period end transition
+    // Handle period end transition, send signals to Arduino for both transitions
     async handlePeriodEnd() {
         console.log('DDOS: Handling period end');
         
@@ -169,9 +186,11 @@ class TimerManager {
             if (this.state.isBreak) {
                 this.startStudyPeriod(studyMin, breakMin);
                 this.showNotification("Break's over! Back to studying.");
+                sendToArduino("off_task"); // HARDWARE: Sends off_task signal to Arduino
             } else {
                 this.startBreakPeriod(breakMin, studyMin);
                 this.showNotification("Time for a break!");
+                sendToArduino("break_time"); // HARDWARE: Sends break_time signal to Arduino
             }
         } catch (error) {
             console.error('DDOS: Error handling period end', error);
@@ -269,15 +288,19 @@ class TimerManager {
     }
 }
 
-// ============================================================================
-// WEBSITE MONITORING
-// ============================================================================
+/*
+WEBSITE MONITORING --------------------------------------------------------------------------------------
+*/
 
 class WebsiteMonitor {
     constructor(timerManager) {
         this.timerManager = timerManager;
         this.lastNotified = new Map();
         this.notifyInterval = 10000; // 10 seconds
+        this.unauthorizedAccess = false;
+        
+        // Start periodic check for unauthorized access
+        setInterval(() => this.checkUnauthorizedState(), 1000); // Check every second
     }
     
     // Check if URL is allowed
@@ -318,6 +341,7 @@ class WebsiteMonitor {
         try {
             // Skip checks during break time
             if (!this.timerManager.state.notificationsEnabled) {
+                this.unauthorizedAccess = false;
                 return;
             }
             
@@ -326,39 +350,51 @@ class WebsiteMonitor {
             
             const allowed = await this.isUrlAllowed(tab.url);
             
-            if (!allowed && this.shouldNotify(tab.id)) {
-                console.log('DDOS: Unauthorized website accessed:', tab.url);
+            if (!allowed) {
+                this.unauthorizedAccess = true;
                 
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'images/warning_icon.png',
-                    title: 'WARNING: Unauthorized Website Accessed!',
-                    message: 'HEY! This website is NOT on your allowed list. Stay focused!'
-                }, (notificationId) => {
-                    if (chrome.runtime.lastError) {
-                        console.error('DDOS: Warning notification error:', chrome.runtime.lastError);
-                    } else {
-                        console.log('DDOS: Warning notification created:', notificationId);
-                    }
-                });
+                if (this.shouldNotify(tab.id)) {
+                    console.log('DDOS: Unauthorized website accessed:', tab.url);
+                    
+                    chrome.notifications.create({
+                        type: 'basic',
+                        iconUrl: 'images/warning_icon.png',
+                        title: 'WARNING: Unauthorized Website Accessed!',
+                        message: 'HEY! This website is NOT on your allowed list. Stay focused!'
+                    }, (notificationId) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('DDOS: Warning notification error:', chrome.runtime.lastError);
+                        } else {
+                            console.log('DDOS: Warning notification created:', notificationId);
+                        }
+                    });
+                }
+            } else {
+                this.unauthorizedAccess = false;
             }
         } catch (error) {
             console.error('DDOS: Error checking URL', error);
         }
     }
+    
+    // Check for unauthorized state and send to Arduino (through bridge.py file)
+    checkUnauthorizedState() {
+        // Send the current state to Arduino using on_task/off_task
+        sendToArduino(this.unauthorizedAccess ? "off_task" : "on_task");
+    }
 }
 
-// ============================================================================
-// INITIALIZATION
-// ============================================================================
+/*
+// INITIALIZATION ----------------------------------------------------------------------------------------------------------
+*/
 
 // Create global instances
 const timerManager = new TimerManager();
 const websiteMonitor = new WebsiteMonitor(timerManager);
 
-// ============================================================================
-// EVENT LISTENERS
-// ============================================================================
+/*
+EVENT LISTENERS -----------------------------------------------------------------------------------------------------------
+*/  
 
 // Chrome alarms listener
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -410,9 +446,9 @@ if (chrome.webNavigation && chrome.webNavigation.onHistoryStateUpdated) {
     });
 }
 
-// ============================================================================
-// MESSAGE HANDLING
-// ============================================================================
+/* 
+MESSAGE HANDLING -----------------------------------------------------------------------------------------------------------
+*/ 
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('DDOS: Message received:', request.action);
@@ -447,9 +483,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// ============================================================================
-// STARTUP EVENTS
-// ============================================================================
+/* 
+STARTUP EVENTS -----------------------------------------------------------------------------------------------------------
+*/
 
 chrome.runtime.onStartup.addListener(() => {
     console.log('DDOS: Extension startup');

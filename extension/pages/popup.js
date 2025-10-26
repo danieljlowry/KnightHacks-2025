@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fallback: if timer elements not found, create them
     if (!timerDisplay || !timerPeriod) {
+        
         console.log('DDOS Popup: Creating timer elements fallback');
         const timerStatus = document.getElementById('timer-status');
         if (timerStatus) {
@@ -40,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 timerStatus.appendChild(period);
             }
         }
-    }
+
+    } // end if fallback
 
     // READ INPUTS ----------------------------------------------------------------------------------------------
 
@@ -126,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveTimeout = setTimeout(() => { status.textContent = ''; }, 1600);
             });
         });
-    }
+    } // end clearBtn
 
     // TIMER FUNCTIONALITY ------------------------------------------------------------------------------------
     
@@ -166,21 +168,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 timerPeriod.textContent = isBreak ? 'Break Period' : 'Study Period';
             }
         });
-    }
+    } // end updateTimerDisplay
     
     function startTimerUpdates() {
+
         updateTimerDisplay();
         timerUpdateInterval = setInterval(updateTimerDisplay, 1000); // Update every second
-    }
+
+    } // end startTimerUpdates
     
     function stopTimerUpdates() {
+
         if (timerUpdateInterval) {
             clearInterval(timerUpdateInterval);
             timerUpdateInterval = null;
+
         }
-    }
+
+    } // end stopTimerUpdates
     
-    // Reset timer functionality
+    // RESET timer functionality
     if (resetTimerBtn) {
         resetTimerBtn.addEventListener('click', function() {
             chrome.storage.local.remove(['timerEndTime', 'isBreak'], function() {
@@ -195,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         });
-    }
+    } // end reset timer functionality
     
     // Start timer updates when popup opens
     startTimerUpdates();

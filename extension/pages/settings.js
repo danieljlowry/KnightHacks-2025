@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Reset button functionality
   resetBtn.addEventListener('click', () => {
     // clear storage keys and inputs
     chrome.storage.local.remove(['studyMinutes', 'breakMinutes'], () => {
