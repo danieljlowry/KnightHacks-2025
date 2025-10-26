@@ -10,8 +10,19 @@ void setup() {
 void loop() {
   bool phonePresent = sensor.phoneIn();
   Serial.print("Phone in? ");
-  Serial.println(phonePresent ? "YES" : "NO");
+
   float dist = sensor.distanceCM();  
+
+  if (dist < 2.32 || dist > 2.34)
+  {
+    phonePresent = true;
+  }
+  else
+  {
+    phonePresent = false;
+  }
+
+  Serial.println(phonePresent ? "YES" : "NO");
   Serial.print("Distance: ");
   Serial.print(dist);
   Serial.println(" cm");

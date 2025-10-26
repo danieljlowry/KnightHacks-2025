@@ -1,6 +1,6 @@
 import serial
 import serial.tools.list_ports
-from flask import Flask, request
+from flask import Flask, make_response, request
 import time
 
 app = Flask(__name__)
@@ -42,11 +42,17 @@ def send_to_arduino(cmd):
 @app.route('/status', methods=['GET'])
 def status():
     state = request.args.get('state')
-    if state in ['on_task', 'off_task']:
+    if state in ['on_task', 'off_task', 'break_time']:
         send_to_arduino(state)
-        return "OK", 200
+        response = make_response("OK", 200)
     else:
-        return "Invalid state", 400
+        response = make_response("Invalid state", 400)
+    
+    # Add CORS headers
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
 
 # -----------------------------
 # Main
