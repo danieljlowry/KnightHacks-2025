@@ -3,15 +3,6 @@ DDOS Extension - Background Script
 Runs in the background to manage timer, monitor websites, and communicate with Arduino
 */
 
-function sendToArduino(state) {
-  fetch(`http://localhost:5000/status?state=${state}`)
-    .catch(err => console.error("Arduino unreachable:", err));
-}
-
-// Example: after checking the tab
-if (true) sendToArduino("on_task");
-else sendToArduino("off_task");
-
 /*
 HARDWARE COMMUNICATION --------------------------------------------------------------------------------
 */
