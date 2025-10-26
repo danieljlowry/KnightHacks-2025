@@ -1,6 +1,6 @@
 # Welcome to Study Buddy!
 
-A Chrome extension designed to help students stay focused during study sessions by monitoring website usage and integrating it with a physcial phone-holding device.
+A Chrome extension designed to help students stay focused during study sessions by monitoring website usage. Additionally, it integrates with a physcial phone-holding container to keep you on track by playing a buzzer to let you know that you've gotten off-track!
 
 ## Features
 
