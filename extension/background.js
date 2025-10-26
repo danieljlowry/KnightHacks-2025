@@ -2,6 +2,12 @@
 Background script, monitors tab changes, notifies user if accessing unapproved sites
 */
 
+/*
+Issue: Timer is broken, doesn't properly update in-real time, requires tab switching or a manually reset to update badge.
+Currently unable to transition between study/break periods properly. Gets stuck on 1 minute left on study period (red badge). Requires a
+manual reset to transition to break period (blue badge).
+*/
+
 // TIMER STATE MANAGEMENT ------------------------------------------------------------------------------------------
 
 let timerState = {
