@@ -1,85 +1,84 @@
+
+// // ---- Fix for UNO R4 (Renesas core has no wiring_private.h) ----
+// #if defined(ARDUINO_UNOR4_WIFI) || defined(ARDUINO_UNOR4_MINIMA)
+//   #define ARDUINO_ARCH_RENESAS 1
+//   #define wiring_private_h           // dummy guard so library skips it
+// #endif
+// // ----------------------------------------------------------------
+
+#include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_GC9A01A.h>
-#include <SPI.h>
 #include "Smile.h"
 #include "Sad.h"
-#include "IEEE.h"
+#include "ultrasonic.h"
 
-// pin definitions
+//Buzzer wiring
+#define BUZZER 5
 
-#define TFT_CS   15
-#define TFT_DC   2
-#define TFT_RST  4
+// TFT wiring (UNO)
+#define TFT_CS   10
+#define TFT_DC    9
+#define TFT_RST   8
 
-// binding pins to SPI
-// some unmentioned pins are hardware default
+UltrasonicSensor sensor(12, 2, 2.5);
 Adafruit_GC9A01A tft(TFT_CS, TFT_DC, TFT_RST);
 
-void showImage(const uint16_t *img)
-{
-  tft.fillScreen(GC9A01A_BLACK);
-  tft.drawRGBBitmap(0, 0, img, 240, 240);
-}
+// Create face objects
+SmileFace smile(&tft);
+SadFace   sad(&tft);
+
+int shortBeep = 100;
+int countDown = 1000;
 
 void setup() {
-  // put your setup code here, to run once:
-
   tft.begin();
-  tft.fillScreen(GC9A01A_BLACK);
-  delay(200);
-  showImage(SadFace); // start on IEEE logo
+  tft.setRotation(2); // flips image 180 degrees
+  tft.fillScreen(0x0000);
 
-  // Serial.begin(115200); // set baudrate
+  tft.setTextColor(0xFFFF);
+  tft.setTextSize(2);
+  tft.setCursor(40, 10);
+  //tft.println(F("Face Class Test"));
 
-  // // display initialization 
-  // tft.begin();
-  // tft.fillScreen(GC9A01A_BLACK);
-  // delay(200);
+  Serial.begin(115200);
+  sensor.begin();
 
-  // // black and yellow
-  // uint16_t black  = GC9A01A_BLACK;
-  // uint16_t yellow = tft.color565(180, 135, 0); // IEEE yellow
+  pinMode(BUZZER, OUTPUT);
 
-  // for (int i = 0; i < 8; i++) {
-  //   uint16_t color = (i % 2 == 0) ? yellow : black;
-  //   tft.fillRect(0, i * 30, 240, 30, color);
-  // }
-
+  noTone(BUZZER);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // rainbow text colors
-    // static int index = 0;
-    // uint16_t rainbow[] = {
-    //   GC9A01A_RED,
-    //   tft.color565(255,140,0), // orange
-    //   GC9A01A_YELLOW,
-    //   GC9A01A_GREEN,
-    //   GC9A01A_CYAN,
-    //   GC9A01A_BLUE,
-    //   GC9A01A_MAGENTA
-    // };
-    // int n = sizeof(rainbow)/sizeof(rainbow[0]);
+  // tone(BUZZER, 10);
+  // show smile
 
-    // uint16_t black  = GC9A01A_BLACK;
-    // uint16_t yellow = tft.color565(180, 135, 0);
+  bool phonePresent = sensor.phoneIn();
+  Serial.print("Phone in? ");
+  Serial.println(phonePresent ? "YES" : "NO");
 
-    // // repaint stripes
-    // for (int i = 0; i < 8; i++) {
-    //   uint16_t color = (i % 2 == 0) ? yellow : black;
-    //   tft.fillRect(0, i * 30, 240, 30, color);
-    // }
+  static bool lastPresent = !phonePresent; // force initial draw
+  if (phonePresent != lastPresent) {
+    if (phonePresent)
+    {
+      //tft.fillScreen(0x0000);
+        smile.draw();
+        noTone(BUZZER);
+    }
+    else
+    {
+        // show sad
+        //tft.fillScreen(0x0000);
+        sad.draw();
+        tone(BUZZER, 85);
+        //delay(shortBeep);
+        // noTone(BUZZER);
 
+        // delay(countDown);
+        // countDown = countDown - 50;
+    }
 
-    // // rainbow text
-    // tft.setTextSize(4);
-    // tft.setTextColor(rainbow[index]);
-    // tft.setCursor(55, 85);
-    // tft.print("Hello");
-    // tft.setCursor(70, 150);
-    // tft.print("IEEE");
+    lastPresent = phonePresent;
+  }
 
-    // delay(500);
-    // index = (index + 1) % n;
 }

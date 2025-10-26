@@ -43,7 +43,7 @@ public:
   // Returns true if phone is detected (distance <= threshold)
   bool phoneIn() {
     float d = filteredDistance();
-    return (d >= threshold);
+    return (d >= threshold); // Noramlly should be less than, but there is a bug where it goes over threshold (can't be less than 2cm)
   }
 
   // Optional helper if you just want the distance
